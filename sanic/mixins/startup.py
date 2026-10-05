@@ -784,6 +784,10 @@ class StartupMixin(metaclass=SanicMeta):
                     "ACCESS_LOG": app.config.ACCESS_LOG,
                     "NOISY_EXCEPTIONS": app.config.NOISY_EXCEPTIONS,
                 },
+                # 派生后由 refresh() 校验这些必要状态是否完整传递
+                "config_manifest": app.config.provenance_manifest(
+                    required=("ACCESS_LOG", "NOISY_EXCEPTIONS"),
+                ),
                 "shared_ctx": app.shared_ctx.__dict__,
             }
             for app in apps:

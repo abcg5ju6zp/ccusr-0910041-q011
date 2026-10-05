@@ -288,7 +288,7 @@ class Sanic(
 
         # First setup config
         self.config: config_type = cast(
-            config_type, config or Config(env_prefix=env_prefix)
+            config_type, config or Config(env_prefix=env_prefix, label=name)
         )
         if inspector:
             self.config.INSPECTOR = inspector
@@ -1793,12 +1793,22 @@ class Sanic(
                 registered.state.server_info = self.state.server_info
             self = registered
         if passthru:
+            manifest = passthru.pop("config_manifest", None)
             for attr, info in passthru.items():
                 if isinstance(info, dict):
                     for key, value in info.items():
                         setattr(getattr(self, attr), key, value)
                 else:
                     setattr(self, attr, info)
+            if manifest is not None:
+                # 进程派生后校验必要配置状态是否完整传递
+                discrepancies = self.config.verify_provenance(manifest)
+                if discrepancies:
+                    error_logger.error(
+                        "Config state was not fully transferred to the "
+                        f"worker process for app '{self.name}': "
+                        + "; ".join(discrepancies)
+                    )
         if hasattr(self, "multiplexer"):
             self.shared_ctx.lock()
         return self
